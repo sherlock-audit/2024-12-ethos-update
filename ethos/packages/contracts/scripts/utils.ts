@@ -124,3 +124,8 @@ export async function writeContractABI(
   // Auto-fix the linting issues
   await ESLint.outputFixes(results);
 }
+
+export function writeMetadataFile(metadataFilePath: string, metadata: Record<string, any>): void {
+  const contents = JSON.stringify(metadata, null, 2) + '\n';
+  writeFileSync(metadataFilePath, contents);
+}

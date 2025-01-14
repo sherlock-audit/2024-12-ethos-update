@@ -1,4 +1,5 @@
 export { isAddressEqualSafe, isValidAddress } from './address.js';
+export { isHashEqualSafe, isValidHash } from './hash.js';
 export { isValidEnsName } from './ens.js';
 export { notEmpty } from './notEmpty.js';
 export { formatCurrency, formatEth, formatNumber, toNumber, formatXPScore } from './number.js';
@@ -18,3 +19,5 @@ export { generateSlug } from './urlUtils.js';
 export * from './types.js';
 export * from './delay.js';
 export { capitalize } from './text.js';
+export { generateIntentTweetUrl } from './tweet.js';
+export { getApi, NetError } from './request.js';

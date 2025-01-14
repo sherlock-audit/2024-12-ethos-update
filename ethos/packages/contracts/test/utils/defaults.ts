@@ -17,12 +17,18 @@ export const DEFAULT = {
   ACCOUNT_NAME_EXAMPLE: 'example',
   ATTESTATION_EVIDENCE_0: 'ATTESTATION_EVIDENCE_0',
   ATTESTATION_EVIDENCE_1: 'ATTESTATION_EVIDENCE_1',
+  ATTESTATION_EVIDENCE: JSON.stringify({
+    source: 'privy',
+    type: 'OAuth2',
+    id: 'privyLogin.id',
+    approver: 'ethos.network',
+  }),
   ATTESTATION_HASH: '0x0000000000000000000000000000000000000000000000000000000000000000',
   PAYMENT_TOKEN: zeroAddress,
   PAYMENT_AMOUNT: ethers.parseEther('0.1'),
   PROVIDER: ethers.provider,
   EMPTY_BYTES: '0x' + '0'.repeat(64),
-};
+} as const;
 
 export type VouchParams = {
   paymentAmount?: bigint;

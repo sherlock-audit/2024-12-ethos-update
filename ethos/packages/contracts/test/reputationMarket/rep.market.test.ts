@@ -424,6 +424,46 @@ describe('ReputationMarket', () => {
         ).to.not.be.reverted;
       });
     });
+
+    it('should revert with BuySlippageLimitExceeded when insufficient funds for minimum votes', async () => {
+      // Try to buy votes with insufficient funds
+      const buyAmount = DEFAULT.buyAmount / 2n; // Insufficient funds
+      const votesToBuy = 100n;
+      const minVotesToBuy = 90n; // 90% of requested votes
+
+      // Calculate actual cost for these votes
+      const { totalCostIncludingFees } = await reputationMarket.simulateBuy(
+        DEFAULT.profileId,
+        DEFAULT.isPositive,
+        minVotesToBuy,
+      );
+
+      // Attempt purchase with insufficient funds
+      await expect(
+        userA.buyVotes({
+          buyAmount,
+          votesToBuy,
+          minVotesToBuy,
+        }),
+      )
+        .to.be.revertedWithCustomError(reputationMarket, 'BuySlippageLimitExceeded')
+        .withArgs(totalCostIncludingFees, buyAmount);
+    });
+
+    it('should revert with InsufficientFunds when max equals min votes and insufficient funds', async () => {
+      // Try to buy votes with insufficient funds
+      const buyAmount = DEFAULT.buyAmount / 2n; // Insufficient funds
+      const votesToBuy = 100n;
+
+      // Attempt purchase with insufficient funds and equal max/min votes
+      await expect(
+        userA.buyVotes({
+          buyAmount,
+          votesToBuy,
+          minVotesToBuy: votesToBuy, // Set min equal to max
+        }),
+      ).to.be.revertedWithCustomError(reputationMarket, 'InsufficientFunds');
+    });
   });
 
   describe('Simulations', () => {

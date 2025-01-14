@@ -1,0 +1,161 @@
+@layer antd;
+@layer tailwind-base {
+  @tailwind base;
+}
+
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  [class*='border'] {
+    border-style: solid;
+    border-width: 0;
+  }
+
+  /* Variable font */
+  @font-face {
+    font-family: 'Queens';
+    src:
+      url('/assets/fonts/QueensVar.woff2') format('woff2'),
+      url('/assets/fonts/QueensVar.woff') format('woff');
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    margin: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-block-start: 0;
+    margin-block-end: 0;
+    margin-inline-start: 0;
+    margin-inline-end: 0;
+    font-family: Queens, sans-serif !important;
+    font-weight: 400;
+  }
+
+  p,
+  span,
+  div {
+    font-feature-settings: 'calt' 0;
+  }
+
+  *,
+  *:before,
+  *:after {
+    box-sizing: border-box;
+  }
+
+  @media (pointer: coarse) {
+    input,
+    textarea,
+    .ant-input {
+      font-size: 16px !important;
+    }
+  }
+}
+
+:root {
+  --borderDark: #bdbdb6;
+  --borderSecondary: #1f21260f;
+  --colorBgDeep: #b2b2a7;
+  --colorAdvertisementCard: #1f21b6;
+  --colorTickerBg: #C1C0B6;
+  --privy-color-background: var(--colorBgDeep) !important;
+  --privy-color-background-2: var(--colorBgElevated) !important;
+  --privy-color-foreground: var(--colorText) !important;
+  --privy-color-foreground-2: var(--colorTextSecondary) !important;
+  --privy-color-foreground-3: var(--colorTextTertiary) !important;
+  --privy-color-foreground-4: var(--colorBgContainer) !important;
+  --privy-color-foreground-accent: var(--colorBgDeep) !important;
+  --privy-color-accent: var(--colorPrimary) !important;
+  --privy-color-success: var(--colorSuccess) !important;
+  --privy-color-error: var(--colorError) !important;
+  --privy-color-error-light: var(--colorErrorBgHover) !important;
+  --privy-color-warn: var(--colorWarningText) !important;
+  --privy-color-warn-light: var(--colorBgContainer) !important;
+}
+
+.dark {
+  --borderDark: #44443f;
+  --borderSecondary: #ffffff0f;
+  --colorBgDeep: #1e1e1b;
+  --colorAdvertisementCard: #2e7bc3;
+  --colorTickerBg: #232320;
+}
+
+.transact-input input[type='number'] {
+  -webkit-appearance: textfield !important;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+.transact-input input[type='number']::-webkit-inner-spin-button,
+.transact-input input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+}
+
+/* Ant Design carousel arrow buttons */
+.slick-arrow.slick-prev,
+.slick-arrow.slick-next {
+  color: var(--ant-color-text-secondary);
+}
+
+.ant-drawer-content {
+  /* Using half amount because drawer content has already a padding */
+  padding: calc(env(safe-area-inset-top) / 2) calc(env(safe-area-inset-right) / 2)
+    calc(env(safe-area-inset-bottom) / 2) calc(env(safe-area-inset-left) / 2);
+}
+
+.ant-drawer-header-title {
+  /* Antd design puts the close button on the left but all of our designs have it on the right */
+  flex-direction: row-reverse;
+  align-items: start;
+}
+
+/*
+  Override Alert icon colors: https://github.com/ant-design/ant-design-icons/issues/644
+  */
+.ant-notification .ant-notification-notice-wrapper .ant-notification-notice-icon-success.anticon,
+.ant-message .ant-message-notice-wrapper .ant-message-success .anticon,
+.ant-alert.ant-alert-success .ant-alert-icon {
+  color: var(--ant-color-success);
+}
+
+.ant-notification .ant-notification-notice-wrapper .ant-notification-notice-icon-info.anticon,
+.ant-message .ant-message-notice-wrapper .ant-message-info .anticon,
+.ant-alert.ant-alert-info .ant-alert-icon {
+  color: var(--ant-color-info);
+}
+
+.ant-notification .ant-notification-notice-wrapper .ant-notification-notice-icon-warning.anticon,
+.ant-message .ant-message-notice-wrapper .ant-message-warning .anticon,
+.ant-alert.ant-alert-warning .ant-alert-icon {
+  color: var(--ant-color-warning);
+}
+
+.ant-notification .ant-notification-notice-wrapper .ant-notification-notice-icon-error.anticon,
+.ant-message .ant-message-notice-wrapper .ant-message-error .anticon,
+.ant-alert.ant-alert-error .ant-alert-icon {
+  color: var(--ant-color-error);
+}
+
+.ant-alert .ant-alert-close-icon .anticon-close {
+  color: var(--ant-color-text);
+}
+
+.no-arrows input[type=number]::-webkit-inner-spin-button,
+.no-arrows input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    margin: 0;
+}
