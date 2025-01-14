@@ -1,0 +1,19 @@
+{
+  "name": "@ethos/domain",
+  "version": "1.0.0",
+  "description": "Common types, helpers, and constants for Ethos domain model",
+  "main": "dist/index.js",
+  "type": "module",
+  "author": "Ethos Network Inc.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "tsc -b",
+    "watch": "tsc -w"
+  },
+  "dependencies": {
+    "@ethos/blockchain-manager": "^1.0.0",
+    "@ethos/score": "^1.0.0",
+    "viem": "^2.21.51",
+    "zod": "^3.24.1"
+  }
+}

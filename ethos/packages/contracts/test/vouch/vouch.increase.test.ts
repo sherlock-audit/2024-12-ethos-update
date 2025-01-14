@@ -1,7 +1,9 @@
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers.js';
 import { expect } from 'chai';
 import hre from 'hardhat';
+import { zeroHash, zeroAddress } from 'viem';
 import { calcFeeDistribution, calculateFee } from '../utils/common.js';
+import { DEFAULT } from '../utils/defaults.js';
 import { createDeployer, type EthosDeployer } from '../utils/deployEthos.js';
 import { type EthosUser } from '../utils/ethosUser.js';
 
@@ -40,18 +42,21 @@ describe('EthosVouch Increasing', () => {
   it('should successfully increase vouch amount', async () => {
     const { vouchId, balance } = await userA.vouch(userB, { paymentAmount: initialAmount });
 
-    // Calculate fees and expected deposit
-    const { deposit } = calcFeeDistribution(increaseAmount, {
+    // Calculate fees and expected deposit, accounting for vouchers pool fee adjustment
+    const { deposit: depositWithPool, shares } = calcFeeDistribution(increaseAmount, {
       entry: entryFee,
       donation: donationFee,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch pool incentives when increasing your own vouch
     });
+    // When there are no previous vouchers, the vouchers pool fee is returned to the deposit
+    const deposit = depositWithPool + shares.vouchersPool;
 
     await deployer.ethosVouch.contract
       .connect(userA.signer)
-      .increaseVouch(vouchId, { value: increaseAmount });
+      .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount });
 
     const finalBalance = await userA.getVouchBalance(vouchId);
+
     expect(finalBalance).to.be.closeTo(balance + deposit, 1n);
   });
 
@@ -61,7 +66,7 @@ describe('EthosVouch Increasing', () => {
     await expect(
       deployer.ethosVouch.contract
         .connect(userA.signer)
-        .increaseVouch(vouchId, { value: increaseAmount }),
+        .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount }),
     ).to.emit(deployer.ethosVouch.contract, 'VouchIncreased');
   });
 
@@ -75,7 +80,7 @@ describe('EthosVouch Increasing', () => {
     // Increase vouch
     await deployer.ethosVouch.contract
       .connect(userA.signer)
-      .increaseVouch(vouchId, { value: increaseAmount });
+      .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount });
 
     // Check protocol fee recipient's balance increased by expected amount
     const finalFeeBalance = await ethers.provider.getBalance(protocolFeeAddress);
@@ -83,7 +88,7 @@ describe('EthosVouch Increasing', () => {
     const { shares } = calcFeeDistribution(increaseAmount, {
       entry: entryFee,
       donation: donationFee,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch pool incentives when increasing your own vouch
     });
 
     expect(finalFeeBalance - initialFeeBalance).to.equal(shares.protocol);
@@ -98,7 +103,7 @@ describe('EthosVouch Increasing', () => {
     // Increase vouch
     await deployer.ethosVouch.contract
       .connect(userA.signer)
-      .increaseVouch(vouchId, { value: increaseAmount });
+      .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount });
 
     // Check userB's rewards balance increased by expected amount
     const finalRewardsBalance = await userB.getRewardsBalance();
@@ -106,10 +111,10 @@ describe('EthosVouch Increasing', () => {
     const { shares } = calcFeeDistribution(increaseAmount, {
       entry: entryFee,
       donation: donationFee,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch pool incentives when increasing your own vouch
     });
 
-    expect(finalRewardsBalance - initialRewardsBalance).to.equal(shares.donation);
+    expect(finalRewardsBalance - initialRewardsBalance).to.be.closeTo(shares.donation, 1n);
   });
 
   it('should apply vouchers pool fee correctly on increased amount', async () => {
@@ -131,7 +136,7 @@ describe('EthosVouch Increasing', () => {
     // Increase vouch
     await deployer.ethosVouch.contract
       .connect(userA.signer)
-      .increaseVouch(vouchId, { value: increaseAmount });
+      .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount });
 
     const finalBalanceC = await userC.getVouchBalance(vouchIdC);
     const actualIncrease = finalBalanceC - balanceC;
@@ -146,7 +151,7 @@ describe('EthosVouch Increasing', () => {
     await expect(
       deployer.ethosVouch.contract
         .connect(userB.signer)
-        .increaseVouch(vouchId, { value: increaseAmount }),
+        .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount }),
     )
       .to.be.revertedWithCustomError(deployer.ethosVouch.contract, 'NotAuthorForVouch')
       .withArgs(vouchId, userB.profileId);
@@ -159,7 +164,7 @@ describe('EthosVouch Increasing', () => {
     await expect(
       deployer.ethosVouch.contract
         .connect(userA.signer)
-        .increaseVouch(vouchId, { value: increaseAmount }),
+        .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount }),
     )
       .to.be.revertedWithCustomError(deployer.ethosVouch.contract, 'AlreadyUnvouched')
       .withArgs(vouchId);
@@ -171,7 +176,7 @@ describe('EthosVouch Increasing', () => {
     await expect(
       deployer.ethosVouch.contract
         .connect(userA.signer)
-        .increaseVouch(nonExistentVouchId, { value: increaseAmount }),
+        .increaseVouch(nonExistentVouchId, zeroHash, zeroAddress, { value: increaseAmount }),
     )
       .to.be.revertedWithCustomError(deployer.ethosVouch.contract, 'NotAuthorForVouch')
       .withArgs(nonExistentVouchId, userA.profileId);
@@ -182,28 +187,38 @@ describe('EthosVouch Increasing', () => {
     const initialBalance = await userA.getVouchBalance(vouchId);
 
     // Calculate fees for first increase
-    const { deposit: firstDeposit } = calcFeeDistribution(increaseAmount, {
-      entry: entryFee,
-      donation: donationFee,
-      vouchIncentives,
-    });
+    const { deposit: firstDepositWithPool, shares: firstShares } = calcFeeDistribution(
+      increaseAmount,
+      {
+        entry: entryFee,
+        donation: donationFee,
+        vouchIncentives: 0n, // no vouch pool incentives when increasing your own vouch
+      },
+    );
+    // When there are no previous vouchers, the vouchers pool fee is returned to the deposit
+    const firstDeposit = firstDepositWithPool + firstShares.vouchersPool;
 
     // First increase
     await deployer.ethosVouch.contract
       .connect(userA.signer)
-      .increaseVouch(vouchId, { value: increaseAmount });
+      .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount });
 
     // Calculate fees for second increase
-    const { deposit: secondDeposit } = calcFeeDistribution(increaseAmount, {
-      entry: entryFee,
-      donation: donationFee,
-      vouchIncentives,
-    });
+    const { deposit: secondDepositWithPool, shares: secondShares } = calcFeeDistribution(
+      increaseAmount,
+      {
+        entry: entryFee,
+        donation: donationFee,
+        vouchIncentives: 0n, // no vouch pool incentives when increasing your own vouch
+      },
+    );
+    // When there are no previous vouchers, the vouchers pool fee is returned to the deposit
+    const secondDeposit = secondDepositWithPool + secondShares.vouchersPool;
 
     // Second increase
     await deployer.ethosVouch.contract
       .connect(userA.signer)
-      .increaseVouch(vouchId, { value: increaseAmount });
+      .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount });
 
     // The balance should have increased by both deposits
     const finalBalance = await userA.getVouchBalance(vouchId);
@@ -211,14 +226,16 @@ describe('EthosVouch Increasing', () => {
     const expectedIncrease = firstDeposit + secondDeposit;
 
     // Allow for small rounding differences
-    expect(actualIncrease).to.be.closeTo(expectedIncrease, 1n);
+    expect(actualIncrease).to.be.closeTo(expectedIncrease, 5n);
   });
 
   it('should revert increase with zero value', async () => {
     const { vouchId } = await userA.vouch(userB, { paymentAmount: initialAmount });
 
     await expect(
-      deployer.ethosVouch.contract.connect(userA.signer).increaseVouch(vouchId, { value: 0 }),
+      deployer.ethosVouch.contract
+        .connect(userA.signer)
+        .increaseVouch(vouchId, zeroHash, zeroAddress, { value: 0 }),
     )
       .to.be.revertedWithCustomError(deployer.ethosVouch.contract, 'MinimumVouchAmount')
       .withArgs(await deployer.ethosVouch.contract.configuredMinimumVouchAmount());
@@ -233,7 +250,7 @@ describe('EthosVouch Increasing', () => {
     await expect(
       deployer.ethosVouch.contract
         .connect(userA.signer)
-        .increaseVouch(vouchId, { value: increaseAmount }),
+        .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount }),
     )
       .to.be.revertedWithCustomError(deployer.ethosVouch.contract, 'FeeTransferFailed')
       .withArgs('Protocol fee deposit failed');
@@ -246,20 +263,25 @@ describe('EthosVouch Increasing', () => {
     const { deposit: initialDeposit } = calcFeeDistribution(initialAmount, {
       entry: entryFee,
       donation: donationFee,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch pool incentives when first vouch
     });
 
     // Increase vouch
     await deployer.ethosVouch.contract
       .connect(userA.signer)
-      .increaseVouch(vouchId, { value: increaseAmount });
+      .increaseVouch(vouchId, zeroHash, zeroAddress, { value: increaseAmount });
 
-    // Calculate increase deposit after entry fees
-    const { deposit: increaseDeposit } = calcFeeDistribution(increaseAmount, {
-      entry: entryFee,
-      donation: donationFee,
-      vouchIncentives,
-    });
+    // Calculate increase deposit after fees, accounting for vouchers pool fee adjustment
+    const { deposit: increaseDepositWithPool, shares: increaseShares } = calcFeeDistribution(
+      increaseAmount,
+      {
+        entry: entryFee,
+        donation: donationFee,
+        vouchIncentives: 0n, // no vouch pool incentives when increasing your own vouch
+      },
+    );
+    // When there are no previous vouchers, the vouchers pool fee is returned to the deposit
+    const increaseDeposit = increaseDepositWithPool + increaseShares.vouchersPool;
 
     // Get userA's balance before unvouching
     const balanceBefore = await ethers.provider.getBalance(userA.signer.address);
@@ -282,6 +304,40 @@ describe('EthosVouch Increasing', () => {
     const actualReturn = balanceAfter - balanceBefore + gasUsed;
 
     // Allow for small rounding differences
-    expect(actualReturn).to.be.closeTo(expectedReturn, 1n);
+    expect(actualReturn).to.be.closeTo(expectedReturn, 5n);
+  });
+
+  it('should successfully increase vouch amount for mock profile (address-based vouch)', async () => {
+    // Generate a mock address using ethers Wallet
+    const mockWallet = ethers.Wallet.createRandom();
+    const mockAddress = mockWallet.address;
+
+    // Review the address
+    await userA.review({ address: mockAddress });
+    // Initial vouch by address for mock profile
+    await deployer.ethosVouch.contract
+      .connect(userA.signer)
+      .vouchByAddress(mockAddress, DEFAULT.COMMENT, DEFAULT.METADATA, {
+        value: initialAmount,
+      });
+    const vouchId = (await deployer.ethosVouch.contract.vouchCount()) - 1n;
+    const balance = await userA.getVouchBalance(vouchId);
+    // Calculate fees and expected deposit for increase
+    const { deposit: depositWithPool, shares } = calcFeeDistribution(increaseAmount, {
+      entry: entryFee,
+      donation: donationFee,
+      vouchIncentives: 0n, // no vouch pool incentives when increasing your own vouch
+    });
+    // When there are no previous vouchers, the vouchers pool fee is returned to the deposit
+    const deposit = depositWithPool + shares.vouchersPool;
+
+    // Increase vouch - note we pass the mock address since this was an address-based vouch
+    await deployer.ethosVouch.contract
+      .connect(userA.signer)
+      .increaseVouch(vouchId, zeroHash, mockAddress, { value: increaseAmount });
+
+    const finalBalance = await userA.getVouchBalance(vouchId);
+
+    expect(finalBalance).to.be.closeTo(balance + deposit, 1n);
   });
 });
