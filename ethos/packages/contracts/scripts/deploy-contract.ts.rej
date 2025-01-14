@@ -1,0 +1,83 @@
+diff a/ethos/packages/contracts/scripts/deploy-contract.ts b/ethos/packages/contracts/scripts/deploy-contract.ts	(rejected hunks)
+@@ -1,5 +1,5 @@
+ /* eslint-disable no-console */
+-import { readFileSync, writeFileSync } from 'node:fs';
++import { readFileSync } from 'node:fs';
+ import { ETHOS_ENVIRONMENTS, type EthosEnvironment } from '@ethos/env';
+ import { getLogger } from '@ethos/logger';
+ import hre from 'hardhat';
+@@ -16,6 +16,7 @@ import {
+   getContractKeyByEnvironment,
+ } from '../src/index.js';
+ import {
++  writeMetadataFile,
+   getAdminAccount,
+   getSignerAccount,
+   placeholderContractMetadata,
+@@ -88,6 +89,7 @@ const contractsConfigMap: ContractConfig = {
+   interactionControl: {
+     name: contractLookup.interactionControl.name,
+     isUpgradeable: contractLookup.interactionControl.isUpgradeable,
++    // ADMIN SHOULD BE ABLE TO PAUSE CONTRACTS, WHICH MAKES IT THE OWNER OF INTERACTION CONTROL
+     getArguments: () => [adminAccount, contractLookup.contractAddressManager.address],
+   },
+   profile: {
+@@ -218,8 +220,19 @@ async function main(): Promise<void> {
+       console.log('📚 Deploying library...', libraryKey);
+       const libraryContractName = libraryKey.split(':')[1];
+       const libraryContract = await ethers.deployContract(libraryContractName);
+-      await libraryContract.waitForDeployment();
+-      libraryAddresses[libraryKey] = await libraryContract.getAddress();
++
++      // Wait for transaction to be mined with explicit confirmation count
++      const receipt = await libraryContract.deploymentTransaction()?.wait(1);
++
++      if (!receipt) {
++        throw new Error(`Failed to deploy library ${libraryKey}`);
++      }
++
++      // Get address after confirmed deployment
++      const libraryAddress = await libraryContract.getAddress();
++      libraryAddresses[libraryKey] = libraryAddress;
++
++      console.log(`📚 Library ${libraryKey} deployed to ${libraryAddress}`);
+     }
+ 
+     console.log('🎓 Deploying contract with libraries...');
+@@ -229,13 +242,21 @@ async function main(): Promise<void> {
+   } else {
+     contractObj = await ethers.getContractFactory(contractConfig.name);
+   }
+-  const contract = await contractObj.deploy();
+-  await contract.waitForDeployment();
+-
+-  const address =
+-    typeof contract.target === 'string' ? contract.target : await contract.getAddress();
++  let address: Address;
++
++  if (!contractConfig.isUpgradeable) {
++    const contract = await contractObj.deploy(...args);
++    await contract.waitForDeployment();
++    address = getAddress(
++      typeof contract.target === 'string' ? contract.target : await contract.getAddress(),
++    );
++  } else {
++    const contract = await contractObj.deploy();
++    await contract.waitForDeployment();
++    address = getAddress(
++      typeof contract.target === 'string' ? contract.target : await contract.getAddress(),
++    );
+ 
+-  if (contractConfig.isUpgradeable) {
+     if (shouldRedeployProxy) {
+       console.log(`${proxyAddress ? '♻️  Redeploying' : '🚢 Deploying'} proxy contract...`);
+ 
+@@ -279,7 +300,7 @@ async function main(): Promise<void> {
+   };
+ 
+   // Save the contract metadata to a JSON file
+-  writeFileSync(metadataFilePath, `${JSON.stringify(metadata, null, 2)}\n`);
++  writeMetadataFile(metadataFilePath, metadata);
+ 
+   // eslint-disable-next-line no-console
+   console.log(`✅ ${pc.blue(contractConfig.name)} deployed to ${pc.yellow(address)}`);

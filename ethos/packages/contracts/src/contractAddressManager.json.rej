@@ -1,0 +1,10 @@
+diff a/ethos/packages/contracts/src/contractAddressManager.json b/ethos/packages/contracts/src/contractAddressManager.json	(rejected hunks)
+@@ -8,7 +8,7 @@
+     "args": []
+   },
+   "prod": {
+-    "address": "0x0000000000000000000000000000000000000000",
++    "address": "0xe6F811d8aEd56D68D2b8658e01519069470b7436",
+     "args": []
+   }
+ }

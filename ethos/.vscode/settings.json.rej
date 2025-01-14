@@ -1,0 +1,13 @@
+diff a/ethos/.vscode/settings.json b/ethos/.vscode/settings.json	(rejected hunks)
+@@ -69,7 +69,10 @@
+     ["ClassName \\=([^;]*);", "'([^']*)'"],
+     ["ClassName \\=([^;]*);", "\"([^\"]*)\""],
+     ["ClassName \\=([^;]*);", "\\`([^\\`]*)\\`"],
+-    ["classNames=\\{([^}]*)\\}", "['\"`]([^'\"`]*)['\"`]"]
++    ["classNames=\\{([^}]*)\\}", "['\"`]([^'\"`]*)['\"`]"],
++    ["[a-zA-Z]+ClassName=\"([^\"]*)\""],
++    ["[a-zA-Z]+ClassName='([^']*)'"],
++    ["[a-zA-Z]+ClassName={['\"`]([^'\"`]*)['\"`]}"]
+   ],
+   "tailwindCSS.classAttributes": [
+     "class",

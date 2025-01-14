@@ -1,0 +1,9 @@
+diff a/ethos/packages/contracts/src/profile-abi.ts b/ethos/packages/contracts/src/profile-abi.ts	(rejected hunks)
+@@ -50,6 +50,7 @@ export const profileAbi = [
+   { inputs: [], name: 'EnforcedPause', type: 'error' },
+   { inputs: [], name: 'ExpectedPause', type: 'error' },
+   { inputs: [], name: 'FailedCall', type: 'error' },
++  { inputs: [], name: 'IndexOutOfBounds', type: 'error' },
+   {
+     inputs: [{ internalType: 'uint256', name: 'profileId', type: 'uint256' }],
+     name: 'InsufficientInvites',

@@ -177,6 +177,17 @@
   {
     "inputs": [
       {
+        "internalType": "bytes32",
+        "name": "attestationHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "InvalidAttestationHash",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "ethosProfileId",
         "type": "uint256"
@@ -267,6 +278,22 @@
   {
     "inputs": [],
     "name": "NotSlasher",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "vouchId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "authorProfileId",
+        "type": "uint256"
+      }
+    ],
+    "name": "PendingSlash",
     "type": "error"
   },
   {
@@ -439,6 +466,25 @@
       }
     ],
     "name": "ExitFeeBasisPointsUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "authorProfileId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isFrozen",
+        "type": "bool"
+      }
+    ],
+    "name": "Frozen",
     "type": "event"
   },
   {
@@ -657,6 +703,18 @@
         "internalType": "uint256",
         "name": "subjectProfileId",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "subjectAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "attestationHash",
+        "type": "bytes32"
       },
       {
         "indexed": false,
@@ -892,6 +950,38 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "authorProfileId",
+        "type": "uint256"
+      }
+    ],
+    "name": "freeze",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "frozenAuthors",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "admin",
         "type": "address"
@@ -905,6 +995,19 @@
   {
     "inputs": [],
     "name": "claimRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "attestationHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "claimRewardsByAttestation",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1247,6 +1350,44 @@
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "rewardsByAddress",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "rewardsByAttestationHash",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1755,6 +1896,29 @@
       }
     ],
     "name": "upgradeToAndCall",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "attestationHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "comment",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "metadata",
+        "type": "string"
+      }
+    ],
+    "name": "vouchByAttestation",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"

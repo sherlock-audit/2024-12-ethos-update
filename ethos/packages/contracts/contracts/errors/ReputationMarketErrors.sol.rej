@@ -1,0 +1,6 @@
+diff a/ethos/packages/contracts/contracts/errors/ReputationMarketErrors.sol b/ethos/packages/contracts/contracts/errors/ReputationMarketErrors.sol	(rejected hunks)
+@@ -26,3 +26,4 @@ error MarketNotGraduated();
+ error NoFundsToWithdraw();
+ error ZeroAddressNotAllowed();
+ error SellSlippageLimitExceeded(uint256 minimumPricePerVote, uint256 actualPricePerVote);
++error BuySlippageLimitExceeded(uint256 requiredAmount, uint256 providedAmount);

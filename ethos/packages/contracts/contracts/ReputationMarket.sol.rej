@@ -1,0 +1,120 @@
+diff a/ethos/packages/contracts/contracts/ReputationMarket.sol b/ethos/packages/contracts/contracts/ReputationMarket.sol	(rejected hunks)
+@@ -4,7 +4,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
+ import { AccessControl } from "./utils/AccessControl.sol";
+ import { ETHOS_PROFILE } from "./utils/Constants.sol";
+ import { IEthosProfile } from "./interfaces/IEthosProfile.sol";
+-import { InsufficientLiquidity, InactiveMarket, InsufficientFunds, FeeTransferFailed, InsufficientVotesOwned, InsufficientVotesToSell, InvalidProfileId, MarketAlreadyExists, MarketCreationErrorCode, MarketCreationUnauthorized, MarketDoesNotExist, SellSlippageLimitExceeded, InvalidMarketConfigOption, UnauthorizedGraduation, UnauthorizedWithdrawal, MarketNotGraduated, ZeroAddressNotAllowed } from "./errors/ReputationMarketErrors.sol";
++import { InsufficientLiquidity, InactiveMarket, InsufficientFunds, FeeTransferFailed, InsufficientVotesOwned, InsufficientVotesToSell, InvalidProfileId, MarketAlreadyExists, MarketCreationErrorCode, MarketCreationUnauthorized, MarketDoesNotExist, SellSlippageLimitExceeded, InvalidMarketConfigOption, UnauthorizedGraduation, UnauthorizedWithdrawal, MarketNotGraduated, ZeroAddressNotAllowed, BuySlippageLimitExceeded } from "./errors/ReputationMarketErrors.sol";
+ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+ import { LMSR } from "./utils/LMSR.sol";
+@@ -444,10 +444,7 @@ contract ReputationMarket is AccessControl, UUPSUpgradeable, ReentrancyGuard, IT
+     uint256 minVotesToBuy
+   ) public payable whenNotPaused activeMarket(profileId) nonReentrant {
+     _checkMarketExists(profileId);
+-    // preliminary check to ensure this is enough money to buy the minimum requested votes.
+-    (, , , uint256 total) = _calculateBuy(markets[profileId], isPositive, minVotesToBuy);
+-    if (total > msg.value) revert InsufficientFunds();
+-
++    // check if we can afford the max number of votes to buy
+     (
+       uint256 purchaseCostBeforeFees,
+       uint256 protocolFee,
+@@ -455,15 +452,23 @@ contract ReputationMarket is AccessControl, UUPSUpgradeable, ReentrancyGuard, IT
+       uint256 totalCostIncludingFees
+     ) = _calculateBuy(markets[profileId], isPositive, maxVotesToBuy);
+     uint256 currentVotesToBuy = maxVotesToBuy;
+-    // if the cost is greater than the maximum votes to buy,
+-    // decrement vote count and recalculate until we identify the max number of votes they can afford
+-    while (totalCostIncludingFees > msg.value) {
+-      currentVotesToBuy--;
+-      (purchaseCostBeforeFees, protocolFee, donation, totalCostIncludingFees) = _calculateBuy(
+-        markets[profileId],
+-        isPositive,
+-        currentVotesToBuy
+-      );
++
++    if (totalCostIncludingFees > msg.value) {
++      // if there's no slippage allowed (via minVotesToBuy), don't bother calculating further options, just revert
++      if (maxVotesToBuy == minVotesToBuy) revert InsufficientFunds();
++      // if the cost is greater than the maximum votes to buy,
++      // check if we can afford the minimum requested votes
++      (, , , uint256 total) = _calculateBuy(markets[profileId], isPositive, minVotesToBuy);
++      if (total > msg.value) revert BuySlippageLimitExceeded(total, msg.value);
++      // if we can afford the minimum requested votes, but not the max,
++      // find the number of votes they can afford
++      (
++        currentVotesToBuy,
++        purchaseCostBeforeFees,
++        protocolFee,
++        donation,
++        totalCostIncludingFees
++      ) = _searchAffordableBuy(markets[profileId], isPositive, minVotesToBuy, maxVotesToBuy);
+     }
+ 
+     // Update market state
+@@ -496,6 +501,55 @@ contract ReputationMarket is AccessControl, UUPSUpgradeable, ReentrancyGuard, IT
+     _emitMarketUpdate(profileId);
+   }
+ 
++  function _searchAffordableBuy(
++    Market memory market,
++    bool isPositive,
++    uint256 minVotesToBuy,
++    uint256 maxVotesToBuy
++  )
++    private
++    view
++    returns (
++      uint256 currentVotesToBuy,
++      uint256 purchaseCostBeforeFees,
++      uint256 protocolFee,
++      uint256 donation,
++      uint256 totalCostIncludingFees
++    )
++  {
++    uint256 low = minVotesToBuy;
++    uint256 high = maxVotesToBuy;
++
++    while (low <= high) {
++      uint256 mid = (low + high) / 2;
++
++      (purchaseCostBeforeFees, protocolFee, donation, totalCostIncludingFees) = _calculateBuy(
++        market,
++        isPositive,
++        mid
++      );
++
++      if (totalCostIncludingFees == msg.value) {
++        // Exact match found
++        return (mid, purchaseCostBeforeFees, protocolFee, donation, totalCostIncludingFees);
++      } else if (totalCostIncludingFees < msg.value) {
++        // Can afford this amount, try higher
++        currentVotesToBuy = mid; // Store last known good amount
++        low = mid + 1;
++      } else {
++        // Too expensive, try lower
++        high = mid - 1;
++      }
++    }
++
++    // If we found an affordable amount, return its costs
++    (purchaseCostBeforeFees, protocolFee, donation, totalCostIncludingFees) = _calculateBuy(
++      market,
++      isPositive,
++      currentVotesToBuy
++    );
++  }
++
+   /**
+    * @dev Previews the cost and fees for buying votes (without executing the trade)
+    * @param market The market state to calculate costs for
+@@ -1054,7 +1108,7 @@ contract ReputationMarket is AccessControl, UUPSUpgradeable, ReentrancyGuard, IT
+     cost = positiveCostRatio.mulDiv(
+       market.basePrice,
+       1e18,
+-      isPositive ? Math.Rounding.Floor : Math.Rounding.Ceil
++      !isBuy ? Math.Rounding.Floor : Math.Rounding.Ceil
+     );
+   }
+ 
