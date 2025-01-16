@@ -1,0 +1,109 @@
+# Prevents an infinite render loop when performing a client-side navigation after rendering the root error boundary.
+# https://github.com/react-component/util/issues/603
+diff --git a/node_modules/rc-util/es/Dom/dynamicCSS.js b/node_modules/rc-util/es/Dom/dynamicCSS.js
+index 8ddec00..d6c390d 100644
+--- a/node_modules/rc-util/es/Dom/dynamicCSS.js
++++ b/node_modules/rc-util/es/Dom/dynamicCSS.js
+@@ -31,7 +31,7 @@ function getOrder(prepend) {
+  * Find style which inject by rc-util
+  */
+ function findStyles(container) {
+-  return Array.from((containerCache.get(container) || container).children).filter(function (node) {
++  return Array.from((containerCache.get(container) || container)?.children || []).filter(function (node) {
+     return node.tagName === 'STYLE';
+   });
+ }
+@@ -56,7 +56,7 @@ export function injectCSS(css) {
+   }
+   styleNode.innerHTML = css;
+   var container = getContainer(option);
+-  var firstChild = container.firstChild;
++  var firstChild = container?.firstChild;
+   if (prepend) {
+     // If is queue `prepend`, it will prepend first style and then append rest style
+     if (isPrependQueue) {
+@@ -77,9 +77,11 @@ export function injectCSS(css) {
+     }
+
+     // Use `insertBefore` as `prepend`
+-    container.insertBefore(styleNode, firstChild);
++    if (firstChild) {
++      container.insertBefore(styleNode, firstChild);
++    }
+   } else {
+-    container.appendChild(styleNode);
++    container?.appendChild(styleNode);
+   }
+   return styleNode;
+ }
+@@ -95,7 +97,7 @@ export function removeCSS(key) {
+   var existNode = findExistNode(key, option);
+   if (existNode) {
+     var container = getContainer(option);
+-    container.removeChild(existNode);
++    container?.removeChild(existNode);
+   }
+ }
+
+@@ -110,7 +112,7 @@ function syncRealContainer(container, option) {
+     var placeholderStyle = injectCSS('', option);
+     var parentNode = placeholderStyle.parentNode;
+     containerCache.set(container, parentNode);
+-    container.removeChild(placeholderStyle);
++    container?.removeChild(placeholderStyle);
+   }
+ }
+
+diff --git a/node_modules/rc-util/lib/Dom/dynamicCSS.js b/node_modules/rc-util/lib/Dom/dynamicCSS.js
+index 95a5191..1303898 100644
+--- a/node_modules/rc-util/lib/Dom/dynamicCSS.js
++++ b/node_modules/rc-util/lib/Dom/dynamicCSS.js
+@@ -41,7 +41,7 @@ function getOrder(prepend) {
+  * Find style which inject by rc-util
+  */
+ function findStyles(container) {
+-  return Array.from((containerCache.get(container) || container).children).filter(function (node) {
++  return Array.from((containerCache.get(container) || container)?.children || []).filter(function (node) {
+     return node.tagName === 'STYLE';
+   });
+ }
+@@ -66,7 +66,7 @@ function injectCSS(css) {
+   }
+   styleNode.innerHTML = css;
+   var container = getContainer(option);
+-  var firstChild = container.firstChild;
++  var firstChild = container?.firstChild;
+   if (prepend) {
+     // If is queue `prepend`, it will prepend first style and then append rest style
+     if (isPrependQueue) {
+@@ -87,9 +87,11 @@ function injectCSS(css) {
+     }
+
+     // Use `insertBefore` as `prepend`
+-    container.insertBefore(styleNode, firstChild);
++    if (firstChild) {
++      container.insertBefore(styleNode, firstChild);
++    }
+   } else {
+-    container.appendChild(styleNode);
++    container?.appendChild(styleNode);
+   }
+   return styleNode;
+ }
+@@ -105,7 +107,7 @@ function removeCSS(key) {
+   var existNode = findExistNode(key, option);
+   if (existNode) {
+     var container = getContainer(option);
+-    container.removeChild(existNode);
++    container?.removeChild(existNode);
+   }
+ }
+
+@@ -120,7 +122,7 @@ function syncRealContainer(container, option) {
+     var placeholderStyle = injectCSS('', option);
+     var parentNode = placeholderStyle.parentNode;
+     containerCache.set(container, parentNode);
+-    container.removeChild(placeholderStyle);
++    container?.removeChild(placeholderStyle);
+   }
+ }

@@ -50,6 +50,7 @@ export const profileAbi = [
   { inputs: [], name: 'EnforcedPause', type: 'error' },
   { inputs: [], name: 'ExpectedPause', type: 'error' },
   { inputs: [], name: 'FailedCall', type: 'error' },
+  { inputs: [], name: 'IndexOutOfBounds', type: 'error' },
   {
     inputs: [{ internalType: 'uint256', name: 'profileId', type: 'uint256' }],
     name: 'InsufficientInvites',

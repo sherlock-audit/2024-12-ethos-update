@@ -41,9 +41,8 @@ describe('Vouch Incentives', () => {
     const { deposit } = calcFeeDistribution(paymentAmount, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n,
     });
-
     expect(balance).to.be.closeTo(deposit, 1n);
   });
 
@@ -80,7 +79,7 @@ describe('Vouch Incentives', () => {
     const { deposit: firstDeposit } = calcFeeDistribution(paymentAmount, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch incentives for first vouch
     });
     expect(vouch0InitialBalance).to.equal(firstDeposit);
 
@@ -117,7 +116,7 @@ describe('Vouch Incentives', () => {
     const { deposit: deposit1 } = calcFeeDistribution(amount1, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch incentives for first vouch
     });
 
     // Second vouch - fees to first voucher
@@ -175,7 +174,7 @@ describe('Vouch Incentives', () => {
     const { deposit: firstDeposit } = calcFeeDistribution(paymentAmount, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch incentives for first vouch
     });
 
     // Verify first vouch deposit
@@ -195,7 +194,7 @@ describe('Vouch Incentives', () => {
     const { deposit: newFirstDeposit } = calcFeeDistribution(paymentAmount, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch incentives for first vouch
     });
 
     // Verify new first vouch deposit
@@ -212,7 +211,7 @@ describe('Vouch Incentives', () => {
     const { deposit: nextFirstDeposit } = calcFeeDistribution(paymentAmount, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch incentives for first vouch
     });
 
     // Verify the new first vouch deposit
@@ -293,7 +292,7 @@ describe('Vouch Incentives', () => {
     const { deposit: firstDeposit } = calcFeeDistribution(paymentAmount, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch incentives for first vouch
     });
 
     // Verify first vouch deposit
@@ -368,14 +367,14 @@ describe('Vouch Incentives', () => {
     const { deposit: initialDeposit } = calcFeeDistribution(initialAmount, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch incentives for first vouch
     });
 
     // Calculate increase deposit
     const { deposit: increaseDeposit } = calcFeeDistribution(increaseAmount, {
       entry: 0n,
       donation: 0n,
-      vouchIncentives,
+      vouchIncentives: 0n, // no vouch incentives when increasing vouch where you're the only voucher
     });
 
     // Increase vouch

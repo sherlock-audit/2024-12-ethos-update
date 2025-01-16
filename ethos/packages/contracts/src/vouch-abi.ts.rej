@@ -1,0 +1,137 @@
+diff a/ethos/packages/contracts/src/vouch-abi.ts b/ethos/packages/contracts/src/vouch-abi.ts	(rejected hunks)
+@@ -52,7 +52,6 @@ export const vouchAbi = [
+     type: 'error',
+   },
+   { inputs: [], name: 'ERC1967NonPayable', type: 'error' },
+-  { inputs: [], name: 'ETHTransferFailed', type: 'error' },
+   { inputs: [], name: 'EnforcedPause', type: 'error' },
+   { inputs: [], name: 'ExpectedPause', type: 'error' },
+   { inputs: [], name: 'FailedCall', type: 'error' },
+@@ -71,6 +70,11 @@ export const vouchAbi = [
+   },
+   { inputs: [], name: 'InsufficientProtocolFeeBalance', type: 'error' },
+   { inputs: [], name: 'InsufficientRewardsBalance', type: 'error' },
++  {
++    inputs: [{ internalType: 'bytes32', name: 'attestationHash', type: 'bytes32' }],
++    name: 'InvalidAttestationHash',
++    type: 'error',
++  },
+   {
+     inputs: [{ internalType: 'uint256', name: 'ethosProfileId', type: 'uint256' }],
+     name: 'InvalidEthosProfileForVouch',
+@@ -108,6 +112,14 @@ export const vouchAbi = [
+   },
+   { inputs: [], name: 'NotInitializing', type: 'error' },
+   { inputs: [], name: 'NotSlasher', type: 'error' },
++  {
++    inputs: [
++      { internalType: 'uint256', name: 'vouchId', type: 'uint256' },
++      { internalType: 'uint256', name: 'authorProfileId', type: 'uint256' },
++    ],
++    name: 'PendingSlash',
++    type: 'error',
++  },
+   {
+     inputs: [{ internalType: 'address', name: 'userAddress', type: 'address' }],
+     name: 'ProfileNotFoundForAddress',
+@@ -134,14 +146,6 @@ export const vouchAbi = [
+     name: 'VouchNotFound',
+     type: 'error',
+   },
+-  {
+-    inputs: [
+-      { internalType: 'bytes', name: 'data', type: 'bytes' },
+-      { internalType: 'string', name: 'message', type: 'string' },
+-    ],
+-    name: 'WithdrawalFailed',
+-    type: 'error',
+-  },
+   {
+     inputs: [
+       { internalType: 'uint256', name: 'vouchId', type: 'uint256' },
+@@ -207,6 +211,15 @@ export const vouchAbi = [
+     name: 'ExitFeeBasisPointsUpdated',
+     type: 'event',
+   },
++  {
++    anonymous: false,
++    inputs: [
++      { indexed: true, internalType: 'uint256', name: 'authorProfileId', type: 'uint256' },
++      { indexed: false, internalType: 'bool', name: 'isFrozen', type: 'bool' },
++    ],
++    name: 'Frozen',
++    type: 'event',
++  },
+   {
+     anonymous: false,
+     inputs: [{ indexed: false, internalType: 'uint64', name: 'version', type: 'uint64' }],
+@@ -306,6 +319,8 @@ export const vouchAbi = [
+       { indexed: true, internalType: 'uint256', name: 'vouchId', type: 'uint256' },
+       { indexed: true, internalType: 'uint256', name: 'authorProfileId', type: 'uint256' },
+       { indexed: true, internalType: 'uint256', name: 'subjectProfileId', type: 'uint256' },
++      { indexed: false, internalType: 'address', name: 'subjectAddress', type: 'address' },
++      { indexed: false, internalType: 'bytes32', name: 'attestationHash', type: 'bytes32' },
+       { indexed: false, internalType: 'uint256', name: 'amountStaked', type: 'uint256' },
+       { indexed: false, internalType: 'uint256', name: 'amountDeposited', type: 'uint256' },
+     ],
+@@ -318,6 +333,8 @@ export const vouchAbi = [
+       { indexed: true, internalType: 'uint256', name: 'vouchId', type: 'uint256' },
+       { indexed: true, internalType: 'uint256', name: 'authorProfileId', type: 'uint256' },
+       { indexed: true, internalType: 'uint256', name: 'subjectProfileId', type: 'uint256' },
++      { indexed: false, internalType: 'address', name: 'subjectAddress', type: 'address' },
++      { indexed: false, internalType: 'bytes32', name: 'attestationHash', type: 'bytes32' },
+       { indexed: false, internalType: 'uint256', name: 'amountStaked', type: 'uint256' },
+       { indexed: false, internalType: 'uint256', name: 'amountDeposited', type: 'uint256' },
+     ],
+@@ -497,7 +535,11 @@ export const vouchAbi = [
+     type: 'function',
+   },
+   {
+-    inputs: [{ internalType: 'uint256', name: 'vouchId', type: 'uint256' }],
++    inputs: [
++      { internalType: 'uint256', name: 'vouchId', type: 'uint256' },
++      { internalType: 'bytes32', name: 'attestationHash', type: 'bytes32' },
++      { internalType: 'address', name: 'subjectAddress', type: 'address' },
++    ],
+     name: 'increaseVouch',
+     outputs: [],
+     stateMutability: 'payable',
+@@ -584,9 +626,23 @@ export const vouchAbi = [
+     stateMutability: 'nonpayable',
+     type: 'function',
+   },
++  {
++    inputs: [{ internalType: 'address', name: '', type: 'address' }],
++    name: 'rewardsByAddress',
++    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
++    stateMutability: 'view',
++    type: 'function',
++  },
++  {
++    inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
++    name: 'rewardsByAttestationHash',
++    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
++    stateMutability: 'view',
++    type: 'function',
++  },
+   {
+     inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+-    name: 'rewards',
++    name: 'rewardsByProfileId',
+     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+     stateMutability: 'view',
+     type: 'function',
+@@ -676,6 +732,13 @@ export const vouchAbi = [
+     stateMutability: 'view',
+     type: 'function',
+   },
++  {
++    inputs: [{ internalType: 'uint256', name: 'authorProfileId', type: 'uint256' }],
++    name: 'unfreeze',
++    outputs: [],
++    stateMutability: 'nonpayable',
++    type: 'function',
++  },
+   {
+     inputs: [],
+     name: 'unhealthyResponsePeriod',

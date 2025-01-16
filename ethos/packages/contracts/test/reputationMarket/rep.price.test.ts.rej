@@ -1,0 +1,179 @@
+diff a/ethos/packages/contracts/test/reputationMarket/rep.price.test.ts b/ethos/packages/contracts/test/reputationMarket/rep.price.test.ts	(rejected hunks)
+@@ -11,6 +11,7 @@ const { ethers } = hre;
+ describe('ReputationMarket Base Price Tests', () => {
+   let deployer: EthosDeployer;
+   let userA: MarketUser;
++  let ethosUserA: EthosUser;
+   let reputationMarket: ReputationMarket;
+   const DEFAULT_PRICE = 0.01;
+ 
+@@ -20,7 +21,7 @@ describe('ReputationMarket Base Price Tests', () => {
+     if (!deployer.reputationMarket.contract) {
+       throw new Error('ReputationMarket contract not found');
+     }
+-    const ethosUserA = await deployer.createUser();
++    ethosUserA = await deployer.createUser();
+     await ethosUserA.setBalance('5000000000');
+ 
+     userA = new MarketUser(ethosUserA.signer);
+@@ -209,5 +210,160 @@ describe('ReputationMarket Base Price Tests', () => {
+         'Price is too high',
+       ); // less than 1% of base price
+     });
++
++    it('should sell the last distrust vote', async () => {
++      const range = 100n;
++      const initialContractBalance = await ethers.provider.getBalance(reputationMarket.target);
++      const oneEth = ethers.parseEther('1');
++      const oddBasePrice = ethers.parseEther('0.16325');
++
++      // Create market setup
++      const userC = await deployer.createUser();
++      await userC.setBalance((range * oneEth).toString());
++      const marketC = new MarketUser(userC.signer);
++
++      await reputationMarket
++        .connect(deployer.ADMIN)
++        .addMarketConfig(DEFAULT.liquidity, oddBasePrice, 0n);
++
++      const configCount = await reputationMarket.getMarketConfigCount();
++
++      await reputationMarket
++        .connect(deployer.ADMIN)
++        .createMarketWithConfigAdmin(userC.signer.address, configCount - 1n, {
++          value: 0n,
++        });
++
++      // Check initial market funds
++      expect(await reputationMarket.marketFunds(userC.profileId)).to.equal(0n);
++
++      // Buy votes and check funds increased
++      await marketC.buyVotes({
++        votesToBuy: range,
++        buyAmount: oneEth * range,
++        isPositive: false,
++        profileId: userC.profileId,
++      });
++
++      const afterBuyFunds = await reputationMarket.marketFunds(userC.profileId);
++      expect(afterBuyFunds).to.be.gt(0n, 'Market funds should increase after buying');
++
++      // Sell votes in batches and track funds
++      const beforeFirstSellFunds = await reputationMarket.marketFunds(userC.profileId);
++      await marketC.sellVotes({ sellVotes: 9n, isPositive: false, profileId: userC.profileId });
++      const afterFirstSellFunds = await reputationMarket.marketFunds(userC.profileId);
++      expect(afterFirstSellFunds).to.be.lt(
++        beforeFirstSellFunds,
++        'Funds should decrease after first sell',
++      );
++
++      const beforeSecondSellFunds = await reputationMarket.marketFunds(userC.profileId);
++      await marketC.sellVotes({ sellVotes: 11n, isPositive: false, profileId: userC.profileId });
++      const afterSecondSellFunds = await reputationMarket.marketFunds(userC.profileId);
++      expect(afterSecondSellFunds).to.be.lt(
++        beforeSecondSellFunds,
++        'Funds should decrease after second sell',
++      );
++
++      await marketC.sellVotes({ sellVotes: 80n, isPositive: false, profileId: userC.profileId });
++      const afterFinalSellFunds = await reputationMarket.marketFunds(userC.profileId);
++      expect(afterFinalSellFunds).to.be.lte(
++        2n,
++        'Market funds should be dust after selling all votes',
++      );
++
++      // Buy two distrust votes
++      await marketC.buyVotes({
++        votesToBuy: 2n,
++        buyAmount: oneEth * 2n,
++        isPositive: false,
++        profileId: userC.profileId,
++      });
++
++      const afterTwoVotesBuyFunds = await reputationMarket.marketFunds(userC.profileId);
++      expect(afterTwoVotesBuyFunds).to.be.gt(0n, 'Market funds should increase after buying');
++
++      // Sell first vote
++      await marketC.sellVotes({
++        sellVotes: 1n,
++        isPositive: false,
++        profileId: userC.profileId,
++      });
++      const afterFirstVoteSellFunds = await reputationMarket.marketFunds(userC.profileId);
++      expect(afterFirstVoteSellFunds).to.be.lt(
++        afterTwoVotesBuyFunds,
++        'Funds should decrease after selling first vote',
++      );
++
++      // Sell second vote
++      await marketC.sellVotes({
++        sellVotes: 1n,
++        isPositive: false,
++        profileId: userC.profileId,
++      });
++      const afterSecondVoteSellFunds = await reputationMarket.marketFunds(userC.profileId);
++      expect(afterSecondVoteSellFunds).to.be.lte(
++        2n,
++        'Market funds should be dust after selling all votes',
++      );
++
++      // Verify final contract balance still matches initial
++      const finalContractBalance = await ethers.provider.getBalance(reputationMarket.target);
++      expect(finalContractBalance).to.be.closeTo(initialContractBalance, 2n);
++    });
++  });
++
++  it('should allow maximum spread between votesToBuy and minVotesToBuy', async () => {
++    const basePrice = ethers.parseEther(DEFAULT_PRICE.toString());
++    const votesToBuy = 10000n;
++    await ethosUserA.setBalance((votesToBuy * basePrice * 2n).toString());
++
++    // Create market first
++    await reputationMarket.connect(deployer.ADMIN).createMarketWithConfigAdmin(
++      userA.signer.address,
++      0n, // use default config (index 0)
++      { value: DEFAULT.creationCost },
++    );
++
++    // Now buy votes to move the market until trust price is less than 0.001 eth
++    await userA.buyVotes({
++      votesToBuy,
++      isPositive: false,
++      buyAmount: votesToBuy * basePrice * 2n,
++    });
++    const trustPrice = await reputationMarket.getVotePrice(DEFAULT.profileId, true);
++    const expectedPrice = basePrice / 10n;
++    expect(trustPrice).to.be.lt(expectedPrice);
++
++    // user wants to buy the maximum number of votes
++    const maxVotesToBuy = 133000n - 1n; // this is the max safe number of votes to buy given LMSR liquidity constraints
++    const minVotesToBuy = 1n;
++
++    // Simulate the buy to get the actual cost
++    const simulation = await reputationMarket.simulateBuy(
++      DEFAULT.profileId,
++      true, // buying trust votes
++      minVotesToBuy,
++    );
++
++    // user cannot buy more than the max number of votes
++    await expect(
++      userA.buyVotes({
++        votesToBuy: maxVotesToBuy + 1n,
++        minVotesToBuy,
++        buyAmount: simulation.totalCostIncludingFees, // Use simulated cost
++      }),
++    ).to.be.revertedWithCustomError(deployer.lmsrLibrary.contract, 'VotesExceedSafeLimit');
++
++    // user can request the maximum number of votes, but end up buying just one
++    const result = await userA.buyVotes({
++      votesToBuy: maxVotesToBuy,
++      minVotesToBuy,
++      buyAmount: simulation.totalCostIncludingFees, // Use simulated cost
++    });
++
++    // user has one vote
++    expect(result.trustVotes).to.equal(1n);
++    // console.log(`User used ${result.gas} gas`);
+   });
+ });

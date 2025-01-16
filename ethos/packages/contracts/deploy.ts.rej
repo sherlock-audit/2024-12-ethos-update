@@ -1,0 +1,48 @@
+diff a/ethos/packages/contracts/deploy.ts b/ethos/packages/contracts/deploy.ts	(rejected hunks)
+@@ -184,15 +184,34 @@ async function main(): Promise<void> {
+         'BASESCAN_TESTNET_API_KEY',
+       ];
+       break;
+-    case 'prod':
++    case 'prod': {
+       requiredEnvVars = [
+         'ALCHEMY_MAINNET_API_URL',
+-        'OWNER_MAINNET_PRIVATE_KEY',
++        'ALCHEMY_MAINNET_API_KEY',
+         'BASESCAN_MAINNET_API_KEY',
++        'OWNER_MAINNET_PRIVATE_KEY',
++        'ADMIN_MAINNET_PRIVATE_KEY',
++        'ADMIN_MAINNET_ADDRESS',
++        'ADMIN_MAINNET_PRIVATE_KEY',
++        'SIGNER_MAINNET_ADDRESS',
+       ];
+-      console.error('We do not yet support deploying to prod/mainnet');
+-      process.exit(1);
++      const { confirmProd } = await inquirer.prompt<{ confirmProd: boolean }>({
++        type: 'confirm',
++        name: 'confirmProd',
++        message:
++          '\n🚨 WARNING: PRODUCTION DEPLOYMENT 🚨\n' +
++          '💰 This will deploy to MAINNET with REAL MONEY 💰\n' +
++          '⚠️  Are you absolutely sure you want to continue? ⚠️\n' +
++          '🔐 This action cannot be undone! 🔐',
++        default: false,
++      });
++
++      if (!confirmProd) {
++        console.log('🛑 Production deployment cancelled');
++        process.exit(1);
++      }
+       break;
++    }
+     default:
+       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+       console.error(`⚠️  Unsupported environment: ${args.environment}`);
+@@ -218,6 +237,7 @@ async function main(): Promise<void> {
+   const updateManagement = await offerToUpdateManagement();
+ 
+   if (updateManagement) await updateAddressManager(args.contract, args.environment);
++  console.log(`💫 deployed ${args.contract} contract`);
+ }
+ 
+ async function verify(contract: Contract, environment: EthosEnvironment): Promise<void> {

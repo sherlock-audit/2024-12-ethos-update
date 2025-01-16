@@ -1,0 +1,13 @@
+diff a/ethos/packages/contracts/src/profile-abi.json b/ethos/packages/contracts/src/profile-abi.json	(rejected hunks)
+@@ -115,6 +115,11 @@
+     "name": "FailedCall",
+     "type": "error"
+   },
++  {
++    "inputs": [],
++    "name": "IndexOutOfBounds",
++    "type": "error"
++  },
+   {
+     "inputs": [
+       {

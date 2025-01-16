@@ -1,0 +1,17 @@
+diff a/ethos/packages/contracts/test/utils/common.ts b/ethos/packages/contracts/test/utils/common.ts	(rejected hunks)
+@@ -130,6 +130,15 @@ export function calcFeeDistribution(
+   // Calculate total basis points for all fees
+   const totalBasisPoints =
+     feeBasisPoints.entry + feeBasisPoints.donation + feeBasisPoints.vouchIncentives;
++
++  // If total basis points is 0, return 0 fees; don't divide by 0
++  if (totalBasisPoints === 0n) {
++    return {
++      totalFees: 0n,
++      deposit: amount,
++      shares: { protocol: 0n, donation: 0n, vouchersPool: 0n },
++    };
++  }
+   // Calculate total fees using combined basis points
+   const totalFees = amount - (amount * 10000n) / (10000n + totalBasisPoints);
+ 
